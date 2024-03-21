@@ -15,6 +15,7 @@ public class RealMachine : IRMRegisters, IResourceAllocator, INotifyPropertyChan
     #region Fields
 
     private List<VirtualMachine> _virtualMachines = new List<VirtualMachine>();
+    private Dictionary<int, int> _memory = new Dictionary<int, int>();
 
     #endregion Fields
 
