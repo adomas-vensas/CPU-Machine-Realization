@@ -1,4 +1,5 @@
 ﻿using MainStage.Interfaces;
+using MainStage.Shared;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -13,32 +14,32 @@ public class VirtualMachine : IInstructions, IVMRegisters, INotifyPropertyChange
 {
     #region Fields
 
-    private readonly IResourceAllocator _parent;
+    private readonly IResourceAllocator _resourceAllocator;
+    private const int BLOCK_SIZE = 10;
 
     #endregion Fields
 
     #region Properties
-    protected Dictionary<int, int> Memory { get; set; }
-    //protected RealMachine Parent => _parent;
+    protected Memory<int, string> VirtualMemory { get; set; }
 
-    private int _r = 0;
-    public int R
+    private string _r = "0000";
+    public string R
     {
         get => _r;
         set
         {
-            _r = value % 10000;
+            _r = SetValue(value, 0x1_0000);
             OnPropertyChanged();
         }
     }
 
-    private int _ic = 0;
-    public int IC
+    private string _ic = "0000";
+    public string IC
     {
         get => _ic;
         set
         {
-            _ic = value % 100;
+            _ic = SetValue(value, 0x1_00);
             OnPropertyChanged();
         }
     }
@@ -58,10 +59,10 @@ public class VirtualMachine : IInstructions, IVMRegisters, INotifyPropertyChange
 
     #region Constructors
 
-    protected VirtualMachine(IResourceAllocator machine, int memorySize)
+    public VirtualMachine(IResourceAllocator resourceAllocator, int memorySize)
     {
-        _parent = machine;
-        Memory = Enumerable.Range(0, memorySize).ToDictionary(x => x, y => 0);
+        _resourceAllocator = resourceAllocator;
+        VirtualMemory = new Memory<int, string>(memorySize, BLOCK_SIZE, x => x, "0000");
     }
 
     #endregion Constructors
@@ -69,11 +70,21 @@ public class VirtualMachine : IInstructions, IVMRegisters, INotifyPropertyChange
     public void Add(int x, int y)
     {
         int address = GetMemAddress(x, y);
-        int value = Memory[address];
+        string memValueStr = VirtualMemory[address];
 
-        R += value;
+        memValueStr.TryParseHex(out int memValue);
+        R.TryParseHex(out int rValue);
 
-        _parent.Test(this);
+        int result = (memValue + rValue);
+
+        if(result > 0x1_0000)
+        {
+            result %= 0x1_0000;
+        }
+
+        R = result.ToString("X");
+
+        _resourceAllocator.Test(this);
     }
 
     public void Count(int x, int y)
@@ -81,51 +92,51 @@ public class VirtualMachine : IInstructions, IVMRegisters, INotifyPropertyChange
         if(C)
         {
             int address = GetMemAddress(x, y);
-            IC = Memory[address];
+            IC = VirtualMemory[address];
         }
 
-        _parent.Test(this);
+        _resourceAllocator.Test(this);
     }
 
     public void Flip(int x, int y)
     {
         int address = GetMemAddress(x, y);
 
-        C = (R == Memory[address]);
+        C = (R == VirtualMemory[address]);
 
-        _parent.Test(this);
+        _resourceAllocator.Test(this);
     }
 
     public void Go(int x, int y)
     {
-        IC = GetMemAddress(x, y);
+        IC = GetMemAddress(x, y).ToString("X");
 
-        _parent.Test(this);
+        _resourceAllocator.Test(this);
     }
 
     public void Halt()
     {
-        _parent.Dispose(this);
+        _resourceAllocator.Dispose(this);
     }
 
     public void Load(int x, int y)
     {
         int address = GetMemAddress(x, y);
-        int value = Memory[address];
+        string memValue = VirtualMemory[address];
 
-        R = value;
+        R = memValue;
 
-        _parent.Test(this);
+        _resourceAllocator.Test(this);
     }
 
     public void Not(int x, int y)
     {
         if(!C)
         {
-            IC = GetMemAddress(x, y);
+            IC = GetMemAddress(x, y).ToString("X");
         }
 
-        _parent.Test(this);
+        _resourceAllocator.Test(this);
     }
 
     public void Read(int x)
@@ -142,14 +153,21 @@ public class VirtualMachine : IInstructions, IVMRegisters, INotifyPropertyChange
     {
         int address = GetMemAddress(x, y);
 
-        Memory[address] = R;
+        VirtualMemory[address] = R;
 
-        _parent.Test(this);
+        _resourceAllocator.Test(this);
     }
 
     private int GetMemAddress(int x, int y)
     {
-        return x * 10 + y;
+        return x * BLOCK_SIZE + y;
+    }
+    private string SetValue(string hexString, int modValue)
+    {
+        hexString.TryParseHex(out int result);
+        result %= modValue;
+
+        return result.ToString("X");
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -157,4 +175,6 @@ public class VirtualMachine : IInstructions, IVMRegisters, INotifyPropertyChange
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
+
+    
 }

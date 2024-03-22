@@ -1,5 +1,6 @@
 ﻿using MainStage.Enumerators;
 using MainStage.Interfaces;
+using MainStage.Shared;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -14,66 +15,72 @@ public class RealMachine : IRMRegisters, IResourceAllocator, INotifyPropertyChan
 {
     #region Fields
 
+    public const int BLOCK_SIZE = 10;
+    public const int MAX_SIZE = BLOCK_SIZE * 50;
+
     private List<VirtualMachine> _virtualMachines = new List<VirtualMachine>();
-    private Dictionary<int, int> _memory = new Dictionary<int, int>();
+    
+    private Memory<int, string> _realMemory = new Memory<int, string>(MAX_SIZE, BLOCK_SIZE, x => x, "0000");
+    private Dictionary<VirtualMachine, List<int>> _vmMemoryBlocks = new(); //In what to what Part of real Memory will the VM exist
+    private HashSet<int> _freeRealMemoryBlocks = null;
 
     #endregion Fields
 
     #region Properties
 
-    private int _ptr = 0;
-    public int PTR
+    private string _ptr = "0000";
+    public string PTR
     {
         get => _ptr;
         set
         {
-            _ptr = value % 10000;
+            _ptr = SetValue(value, 0x1_0000);
             OnPropertyChanged();
         }
     }
 
     public ModeType MODE { get; set; }
 
-    private int _pi = 0;
-    public int PI
+    private string _pi = "0";
+    public string PI
     {
         get => _pi;
         set
         {
-            _pi = value % 10;
+            _pi = SetValue(value, 0x10);
             OnPropertyChanged();
         }
     }
 
-    private int _si = 0;
-    public int SI
+    private string _si = "0";
+    public string SI
     {
         get => _si;
         set
         {
-            _si = value % 10;
+            _si = SetValue(value, 0x10);
             OnPropertyChanged();
         }
     }
 
-    private int _r = 0;
-    public int R
+    private string _r = "0000";
+    public string R
     {
         get => _r;
         set
         {
-            _r = value % 10000;
+            _r = SetValue(value, 1_0000);
             OnPropertyChanged();
         }
     }
 
-    private int _ic = 0;
-    public int IC
+    private string _ic = "00";
+    public string IC
     {
         get => _ic;
         set
         {
-            _ic = value % 100;
+            _ic = SetValue(value, 0x1_00);
             OnPropertyChanged();
         }
     }
@@ -94,25 +101,55 @@ public class RealMachine : IRMRegisters, IResourceAllocator, INotifyPropertyChan
     #region Constructors
 
     public RealMachine()
-    { }
+    {
+        _freeRealMemoryBlocks = Enumerable.Range(0, MAX_SIZE).Select(x => x).ToHashSet();
+    }
 
     #endregion Constructors
 
     #region Methods
 
+    public void CreateVirtualMachine()
+    {
+        VirtualMachine virtualMachine = new VirtualMachine(this, 10);
+
+        _virtualMachines.Add(virtualMachine);
+
+        int memoryBlockId = (int) Random.Shared.NextInt64(0, _freeRealMemoryBlocks.Count + 1);
+        _freeRealMemoryBlocks.Remove(memoryBlockId);
+
+        _vmMemoryBlocks[virtualMachine] = new List<int>() { memoryBlockId };
+    }
+
+    private void UpdateRealMemory(VirtualMachine virtualMachine, int vmMemAddress)
+    {
+        int x = vmMemAddress / 10;
+        int y = vmMemAddress % 10;
+
+    }
+
     public void Test(VirtualMachine machine)
     {
-
+        throw new NotImplementedException();
     }
 
     public void ProvideMemory(VirtualMachine machine)
     {
+        throw new NotImplementedException();
 
     }
 
     public void Dispose(VirtualMachine machine)
     {
+        throw new NotImplementedException();
+    }
 
+    private string SetValue(string hexString, int modValue)
+    {
+        hexString.TryParseHex(out int result);
+        result %= modValue;
+
+        return result.ToString("X");
     }
 
     #endregion Methods

@@ -8,7 +8,7 @@ namespace MainStage.Interfaces;
 
 public interface IVMRegisters
 {
-    public int R { get; set; }
-    public int IC { get; set; }
+    public string R { get; set; }
+    public string IC { get; set; }
     public bool C { get; set; }
 }

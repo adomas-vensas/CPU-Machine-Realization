@@ -9,8 +9,8 @@ namespace MainStage.Interfaces;
 
 public interface IRMRegisters : IVMRegisters
 {
-    public int PTR { get; set; }
+    public string PTR { get; set; }
     public ModeType MODE { get; set; }
-    public int PI { get; set; } 
-    public int SI { get; set; } 
+    public string PI { get; set; } 
+    public string SI { get; set; } 
 }
