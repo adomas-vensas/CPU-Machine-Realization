@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MainStage.ViewModels;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -25,4 +26,8 @@ public interface IResourceAllocator
     /// </summary>
     /// <param name="machine"></param>
     public void Dispose(VirtualMachine machine);
+
+    public void SetSystemInterrupt(int interruptCode);
+    public void SetProgramInterrupt(int interruptCode);
+
 }

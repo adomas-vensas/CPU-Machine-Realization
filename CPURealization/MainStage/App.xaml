@@ -2,8 +2,10 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:MainStage"
-             StartupUri="MainWindow.xaml">
+             xmlns:views="clr-namespace:MainStage.Views"
+             xmlns:viewModels="clr-namespace:MainStage.ViewModels"
+             StartupUri="Views/RealMachineView.xaml">
     <Application.Resources>
-         
+        
     </Application.Resources>
 </Application>

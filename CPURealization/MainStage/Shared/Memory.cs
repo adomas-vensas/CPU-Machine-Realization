@@ -8,7 +8,7 @@ namespace MainStage;
 
 public class Memory<TKey, TValue> : Dictionary<TKey, TValue>
 {
-    public EventHandler MaxSizedReached;
+    public EventHandler MaxSizeReached;
 
     private readonly TValue _defaultValue;
 
@@ -22,13 +22,13 @@ public class Memory<TKey, TValue> : Dictionary<TKey, TValue>
         get => base[key];
         set
         {
-            if (!base.ContainsKey(key) && this.Count >= MaxSize && MaxSizedReached == null)
+            if (!base.ContainsKey(key) && this.Count >= MaxSize && MaxSizeReached == null)
             {
                 throw new InvalidOperationException($"Cannot add more than {MaxSize} elements.");
             }
             else if(!base.ContainsKey(key) && this.Count >= MaxSize)
             {
-                MaxSizedReached?.Invoke(this, new EventArgs());
+                MaxSizeReached?.Invoke(this, new EventArgs());
 
                 if (!base.ContainsKey(key) && this.Count >= MaxSize)
                 {
@@ -66,13 +66,13 @@ public class Memory<TKey, TValue> : Dictionary<TKey, TValue>
 
     public new void Add(TKey key, TValue value)
     {
-        if(this.Count >= MaxSize && MaxSizedReached == null)
+        if(this.Count >= MaxSize && MaxSizeReached == null)
         {
             throw new InvalidOperationException($"Cannot add more than {MaxSize} elements.");
         }
         else if(this.Count >= MaxSize)
         {
-            MaxSizedReached?.Invoke(this, new EventArgs());
+            MaxSizeReached?.Invoke(this, new EventArgs());
 
             if(this.Count >= MaxSize)
             {

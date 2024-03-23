@@ -8,18 +8,33 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace MainStage;
+namespace MainStage.ViewModels;
 
 public class VirtualMachine : IInstructions, IVMRegisters, INotifyPropertyChanged
 {
     #region Fields
 
+    private readonly string _virtualMachineName = "Virtual Machine";
     private readonly IResourceAllocator _resourceAllocator;
     private const int BLOCK_SIZE = 10;
 
     #endregion Fields
 
     #region Properties
+
+    public string VirtualMachineName => _virtualMachineName;
+
+    private Dictionary<string, string> _displayMemory = null;
+    public Dictionary<string, string> DisplayMemory
+    {
+        get => _displayMemory;
+        set
+        {
+            _displayMemory = value;
+            OnPropertyChanged();
+        }
+    }
+
     protected Memory<int, string> VirtualMemory { get; set; }
 
     private string _r = "0000";
@@ -59,13 +74,28 @@ public class VirtualMachine : IInstructions, IVMRegisters, INotifyPropertyChange
 
     #region Constructors
 
-    public VirtualMachine(IResourceAllocator resourceAllocator, int memorySize)
+    public VirtualMachine(string virtualMachineName, IResourceAllocator resourceAllocator, int memorySize)
     {
+        _virtualMachineName = virtualMachineName;
         _resourceAllocator = resourceAllocator;
         VirtualMemory = new Memory<int, string>(memorySize, BLOCK_SIZE, x => x, "0000");
+
+        DisplayMemory = GetDisplayMemory(BLOCK_SIZE, memorySize);
     }
 
     #endregion Constructors
+
+    private Dictionary<string, string> GetDisplayMemory(int blockSize, int maxSize)
+    {
+        Dictionary<string, string> displayMemory = new();
+
+        for (int i = 0; i <= maxSize; i += blockSize)
+        {
+            displayMemory[i.ToString("X")] = Enumerable.Repeat("0000", blockSize).Aggregate((x, y) => x + " " + y);
+        }
+
+        return displayMemory;
+    }
 
     public void Add(int x, int y)
     {

@@ -1,0 +1,96 @@
+﻿<Window x:Class="MainStage.Views.VirtualMachineView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:MainStage"
+        xmlns:views="clr-namespace:MainStage.Views"
+        xmlns:viewModels="clr-namespace:MainStage.ViewModels"
+        mc:Ignorable="d"
+        Title="VirtualMachineView" Height="450" Width="800">
+    <Window.Resources>
+        <DataTemplate DataType="{x:Type viewModels:VirtualMachine}">
+            <views:VirtualMachineView/>
+        </DataTemplate>
+    </Window.Resources>
+
+    <Grid>
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" HorizontalAlignment="Center" Text="{Binding VirtualMachineName}" FontWeight="Bold" FontSize="16"/>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <Grid Grid.Column="0" Margin="10,5,0,0">
+
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Row="0" Grid.ColumnSpan="2" Text="REGISTERS:" FontWeight="SemiBold" FontSize="14"/>
+
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="R:"/>
+                <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding R}" HorizontalAlignment="Right"/>
+
+                <TextBlock Grid.Row="3" Grid.Column="0" Text="IC:"/>
+                <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding IC}" HorizontalAlignment="Right"/>
+
+                <TextBlock Grid.Row="4" Grid.Column="0" Text="C:"/>
+                <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding C}" HorizontalAlignment="Right"/>
+
+            </Grid>
+
+            <Grid Margin="10,5,0,0" Grid.Column="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition MaxHeight="150"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" Text="MEMORY" FontWeight="SemiBold" FontSize="14"/>
+
+                <ScrollViewer Grid.Row="1" Padding="0,0,15,0" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+
+                    <ItemsControl ItemsSource="{Binding DisplayMemory}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Width="40" FontWeight="DemiBold">
+                                        <Run Text="{Binding Key, Mode=OneWay}"/><Run Text=": "/>
+                                    </TextBlock>
+                                    <TextBlock Text="{Binding Value, Mode=OneWay}"></TextBlock>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                </ScrollViewer>
+
+
+            </Grid>
+
+
+        </Grid>
+
+    </Grid>
+</Window>

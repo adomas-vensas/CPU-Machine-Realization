@@ -1,6 +1,7 @@
 ﻿using MainStage.Enumerators;
 using MainStage.Interfaces;
 using MainStage.Shared;
+using MainStage.Views;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -8,8 +9,12 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Data;
+using System.Windows.Input;
+using System.Xml.XPath;
 
-namespace MainStage;
+namespace MainStage.ViewModels;
 
 public class RealMachine : IRMRegisters, IResourceAllocator, INotifyPropertyChanged
 {
@@ -21,12 +26,23 @@ public class RealMachine : IRMRegisters, IResourceAllocator, INotifyPropertyChan
     private List<VirtualMachine> _virtualMachines = new List<VirtualMachine>();
     
     private Memory<int, string> _realMemory = new Memory<int, string>(MAX_SIZE, BLOCK_SIZE, x => x, "0000");
-    private Dictionary<VirtualMachine, List<int>> _vmMemoryBlocks = new(); //In what to what Part of real Memory will the VM exist
+    private Dictionary<VirtualMachine, Dictionary<int, int>> _vmMemoryBlocks = new(); //In what to what Part of real Memory will the VM exist
     private HashSet<int> _freeRealMemoryBlocks = null;
 
     #endregion Fields
 
     #region Properties
+
+    private Dictionary<string, string> _displayMemory = null;
+    public Dictionary<string, string> DisplayMemory
+    {
+        get => _displayMemory;
+        set
+        {
+            _displayMemory = value;
+            OnPropertyChanged();
+        }
+    }
 
     private string _ptr = "0000";
     public string PTR
@@ -103,45 +119,88 @@ public class RealMachine : IRMRegisters, IResourceAllocator, INotifyPropertyChan
     public RealMachine()
     {
         _freeRealMemoryBlocks = Enumerable.Range(0, MAX_SIZE).Select(x => x).ToHashSet();
+        DisplayMemory = GetDisplayMemory(BLOCK_SIZE, MAX_SIZE);
     }
 
     #endregion Constructors
 
     #region Methods
 
-    public void CreateVirtualMachine()
+    private Dictionary<string, string> GetDisplayMemory(int blockSize, int maxSize)
     {
-        VirtualMachine virtualMachine = new VirtualMachine(this, 10);
+        Dictionary<string, string> displayMemory = new();
+
+        for(int i = 0; i <= maxSize; i += blockSize)
+        {
+            displayMemory[i.ToString("X")] = Enumerable.Repeat("0000", blockSize).Aggregate((x, y) => x + " " + y);
+        }
+
+        return displayMemory;
+    }
+
+    public VirtualMachine CreateVirtualMachine()
+    {
+        string virtualMachineName = $"Virtual Machine {_virtualMachines.Count + 1}";
+        VirtualMachine virtualMachine = new VirtualMachine(virtualMachineName,this, 10);
 
         _virtualMachines.Add(virtualMachine);
 
         int memoryBlockId = (int) Random.Shared.NextInt64(0, _freeRealMemoryBlocks.Count + 1);
         _freeRealMemoryBlocks.Remove(memoryBlockId);
 
-        _vmMemoryBlocks[virtualMachine] = new List<int>() { memoryBlockId };
+        _vmMemoryBlocks[virtualMachine] = new Dictionary<int ,int>() { { 0, memoryBlockId } };
+
+        return virtualMachine;
     }
 
-    private void UpdateRealMemory(VirtualMachine virtualMachine, int vmMemAddress)
+    private void UpdateRealMemory(VirtualMachine virtualMachine, int instructionBytes)
     {
-        int x = vmMemAddress / 10;
-        int y = vmMemAddress % 10;
+        string bytes = instructionBytes.ToString("X");
 
+        string opCodeHex = bytes.Substring(0, 1);
+        string memAddressHex = bytes.Substring(opCodeHex.Length);
+
+        memAddressHex.TryParseHex(out int memAddress);
+        opCodeHex.TryParseHex(out int opCode);
+
+        int x = memAddress / 10;
+        int y = memAddress % 10;
+
+        int realMemoryId = _vmMemoryBlocks[virtualMachine][x];
+
+        _realMemory[realMemoryId + y] = opCodeHex;
+        _realMemory[realMemoryId + y + 1] = memAddressHex;
     }
 
     public void Test(VirtualMachine machine)
     {
-        throw new NotImplementedException();
+        SI.TryParseHex(out int siResult);
+        PI.TryParseHex(out int piResult);
+
+        if(siResult + piResult > 0)
+        {
+            Console.WriteLine("Interrupt detected");
+        }
     }
 
     public void ProvideMemory(VirtualMachine machine)
     {
         throw new NotImplementedException();
-
     }
 
     public void Dispose(VirtualMachine machine)
     {
-        throw new NotImplementedException();
+        _virtualMachines.Remove(machine);
+    }
+
+    public void SetSystemInterrupt(int interruptCode)
+    {
+        SI = interruptCode.ToString("X");
+    }
+
+    public void SetProgramInterrupt(int interruptCode)
+    {
+        PI = interruptCode.ToString("X");
     }
 
     private string SetValue(string hexString, int modValue)
