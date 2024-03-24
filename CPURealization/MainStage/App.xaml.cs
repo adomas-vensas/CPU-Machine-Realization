@@ -9,6 +9,7 @@ namespace MainStage
     /// </summary>
     public partial class App : Application
     {
+
     }
 
 }

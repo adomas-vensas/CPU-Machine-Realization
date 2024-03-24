@@ -3,10 +3,13 @@ using MainStage.Shared;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Input;
 
 namespace MainStage.ViewModels;
 
@@ -17,6 +20,7 @@ public class VirtualMachine : IInstructions, IVMRegisters, INotifyPropertyChange
     private readonly string _virtualMachineName = "Virtual Machine";
     private readonly IResourceAllocator _resourceAllocator;
     private const int BLOCK_SIZE = 10;
+
 
     #endregion Fields
 
@@ -69,6 +73,28 @@ public class VirtualMachine : IInstructions, IVMRegisters, INotifyPropertyChange
             OnPropertyChanged();
         }
     }
+
+    private string _nextInput = "";
+    public string NextInput
+    {
+        get => _nextInput;
+        set
+        {
+            _nextInput = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public Action<object, KeyEventArgs> EventHandler
+    {
+        get => ReturnPressedHandler;
+    }
+
+    //private RelayCommand? _returnPressedCommand;
+    //public RelayCommand ReturnPressedCommand
+    //{
+    //    get { return _returnPressedCommand ?? (_returnPressedCommand = new RelayCommand(ReturnPressedCommandHandler, param => true)); }
+    //}
 
     #endregion Properties
 

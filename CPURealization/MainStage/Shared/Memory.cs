@@ -1,5 +1,7 @@
-﻿using System;
+﻿using MainStage.Interfaces;
+using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -11,6 +13,10 @@ public class Memory<TKey, TValue> : Dictionary<TKey, TValue>
     public EventHandler MaxSizeReached;
 
     private readonly TValue _defaultValue;
+
+    private readonly Dictionary<int, Action<int>> _interruptTable;
+
+    private IOS _os;
 
     #region Properties
 
@@ -40,11 +46,17 @@ public class Memory<TKey, TValue> : Dictionary<TKey, TValue>
         }
     }
 
+    public Dictionary<int, Action<int>> InterruptTable
+    {
+        get => _interruptTable;
+    }
+
     #endregion Properties
 
     #region Constructors
 
-    public Memory(int maxSize, int blockSize, Func<int, TKey> keyGenerator, TValue initialValue)
+    public Memory(int maxSize, int blockSize, Func<int, TKey> keyGenerator,
+        TValue initialValue)
     {
         if(maxSize <= 0)
         {
@@ -54,6 +66,21 @@ public class Memory<TKey, TValue> : Dictionary<TKey, TValue>
         MaxSize = maxSize;
         BlockSize = blockSize;
         _defaultValue = initialValue;
+
+        _os = new ViewModels.OperatingSystem();
+
+        _interruptTable = new()
+        {
+            { 1, new Action<int>(_os.GiveControl) },
+            { 2, new Action<int>(_os.GiveControl) },
+            { 3, new Action<int>(_os.GiveControl) },
+            { 4, new Action<int>(_os.GiveControl) },
+            { 5, new Action<int>(_os.GiveControl) },
+            { 6, new Action<int>(_os.GiveControl) },
+            { 7, new Action<int>(_os.GiveControl) },
+            { 8, new Action<int>(_os.GiveControl) },
+        };
+
 
         for (int i = 0; i < MaxSize; ++i)
         {

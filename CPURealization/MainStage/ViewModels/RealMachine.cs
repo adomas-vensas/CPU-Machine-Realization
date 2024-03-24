@@ -57,24 +57,13 @@ public class RealMachine : IRMRegisters, IResourceAllocator, INotifyPropertyChan
 
     public ModeType MODE { get; set; }
 
-    private string _pi = "0";
-    public string PI
+    private string _ir = "0000";
+    public string IR
     {
-        get => _pi;
+        get => _ir;
         set
         {
-            _pi = SetValue(value, 0x10);
-            OnPropertyChanged();
-        }
-    }
-
-    private string _si = "0";
-    public string SI
-    {
-        get => _si;
-        set
-        {
-            _si = SetValue(value, 0x10);
+            _ir = SetValue(value, 0x10);
             OnPropertyChanged();
         }
     }
@@ -174,12 +163,13 @@ public class RealMachine : IRMRegisters, IResourceAllocator, INotifyPropertyChan
 
     public void Test(VirtualMachine machine)
     {
-        SI.TryParseHex(out int siResult);
-        PI.TryParseHex(out int piResult);
+        IR.TryParseHex(out int irResult);
 
-        if(siResult + piResult > 0)
+        if(irResult > 0)
         {
             Console.WriteLine("Interrupt detected");
+
+            _realMemory.InterruptTable[irResult].Invoke(irResult);
         }
     }
 
@@ -193,14 +183,9 @@ public class RealMachine : IRMRegisters, IResourceAllocator, INotifyPropertyChan
         _virtualMachines.Remove(machine);
     }
 
-    public void SetSystemInterrupt(int interruptCode)
+    public void SetInterrupt(int interruptCode)
     {
-        SI = interruptCode.ToString("X");
-    }
-
-    public void SetProgramInterrupt(int interruptCode)
-    {
-        PI = interruptCode.ToString("X");
+        IR = interruptCode.ToString("X");
     }
 
     private string SetValue(string hexString, int modValue)

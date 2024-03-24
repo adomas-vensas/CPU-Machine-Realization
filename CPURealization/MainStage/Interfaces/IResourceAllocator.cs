@@ -27,7 +27,6 @@ public interface IResourceAllocator
     /// <param name="machine"></param>
     public void Dispose(VirtualMachine machine);
 
-    public void SetSystemInterrupt(int interruptCode);
-    public void SetProgramInterrupt(int interruptCode);
+    public void SetInterrupt(int interruptCode);
 
 }

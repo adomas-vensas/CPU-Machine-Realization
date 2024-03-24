@@ -11,6 +11,5 @@ public interface IRMRegisters : IVMRegisters
 {
     public string PTR { get; set; }
     public ModeType MODE { get; set; }
-    public string PI { get; set; } 
-    public string SI { get; set; } 
+    public string IR { get; set; } 
 }
