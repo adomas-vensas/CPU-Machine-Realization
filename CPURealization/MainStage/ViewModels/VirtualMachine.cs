@@ -85,10 +85,7 @@ public class VirtualMachine : IInstructions, IVMRegisters, INotifyPropertyChange
         }
     }
 
-    public Action<object, KeyEventArgs> EventHandler
-    {
-        get => ReturnPressedHandler;
-    }
+    
 
     //private RelayCommand? _returnPressedCommand;
     //public RelayCommand ReturnPressedCommand
