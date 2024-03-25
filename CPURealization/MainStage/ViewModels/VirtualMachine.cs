@@ -15,7 +15,7 @@ using System.Windows.Input;
 
 namespace MainStage.ViewModels;
 
-public class VirtualMachine : IInstructions, IVMRegisters, INotifyPropertyChanged
+public class VirtualMachine : IInstructions, IVMRegisters, ICommandProcessor, INotifyPropertyChanged
 {
     #region Fields
 
@@ -87,18 +87,26 @@ public class VirtualMachine : IInstructions, IVMRegisters, INotifyPropertyChange
         }
     }
 
-    private ObservableCollection<object> _inputHistory;
-    public ObservableCollection<object> InputHistory
+    private ObservableCollection<string> _inputHistory = new ObservableCollection<string>();
+    public ObservableCollection<string> InputHistory
     {
         get => _inputHistory;
-        set => _inputHistory = value;
+        set
+        {
+            _inputHistory = value;
+            OnPropertyChanged();
+        }
     }
 
-    private ObservableCollection<object> _commandHistory;
-    public ObservableCollection<object> CommandHistory
+    private ObservableCollection<string> _commandHistory = new ObservableCollection<string>();
+    public ObservableCollection<string> CommandHistory
     {
         get => _commandHistory;
-        set => _commandHistory = value;
+        set
+        {
+            _commandHistory = value;
+            OnPropertyChanged();
+        }
     }
 
     #endregion Properties
@@ -110,9 +118,6 @@ public class VirtualMachine : IInstructions, IVMRegisters, INotifyPropertyChange
         _virtualMachineName = virtualMachineName;
         _resourceAllocator = resourceAllocator;
         VirtualMemory = new Memory<int, string>(memorySize, BLOCK_SIZE, x => x, "0000");
-        _inputHistory = new ObservableCollection<object>();
-        _commandHistory = new ObservableCollection<object>();
-
         DisplayMemory = GetDisplayMemory(BLOCK_SIZE, memorySize);
     }
 
@@ -221,11 +226,6 @@ public class VirtualMachine : IInstructions, IVMRegisters, INotifyPropertyChange
         _resourceAllocator.Test(this);
     }
 
-    public void ParseInput()
-    {
-        var code = Regex.Match(NextInput, @"[A-z]\s[0-9]\s[0-9]");
-    }
-
     private int GetMemAddress(int x, int y)
     {
         return x * BLOCK_SIZE + y;
@@ -238,13 +238,88 @@ public class VirtualMachine : IInstructions, IVMRegisters, INotifyPropertyChange
         return result.ToString("X");
     }
 
-
-
     public event PropertyChangedEventHandler? PropertyChanged;
     private void OnPropertyChanged([CallerMemberName] string propertyName = null)
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
 
-    
+    public void ParseInput(string commandString)
+    {
+        if(string.IsNullOrWhiteSpace(commandString))
+        {
+            _resourceAllocator.Test(this);
+            return;
+        }
+
+        commandString = commandString.ToUpper();
+        string pattern = @"^\s*[A-Z]{1,5} [0-9A-F]+\s*$"; //HALT 0E, LOAD 6F, HELLO 1
+        Regex regex = new Regex(pattern);
+
+        Match match = regex.Match(commandString);
+
+        if(match == null || !match.Success)
+        {
+            _resourceAllocator.Test(this);
+            return;
+        }
+
+        string instructionStr = match.Value.Trim();
+        string[] parts = instructionStr.Split(' ');
+
+        (int x, int y) = GetMemAdress(parts[1]);
+
+        ExecuteCommand(parts[0], x, y);
+    }
+
+    private (int x, int y) GetMemAdress(string memAddressStr)
+    {
+        int.TryParse(memAddressStr, out int memAddress);
+
+        return (memAddress / BLOCK_SIZE, memAddress % BLOCK_SIZE);
+    }
+
+    private void ExecuteCommand(string operation, int x, int y)
+    {
+        switch (operation)
+        {
+            case "LOAD":
+                Load(x, y);
+                break;
+            case "ADD":
+                Add(x, y);
+                break;
+            case "STORE":
+                Store(x, y);
+                break;
+            case "FLIP":
+                Flip(x, y);
+                break;
+            case "COUNT":
+                Count(x, y);
+                break;
+            case "READ":
+                Read(x);
+                break;
+            case "SEND":
+                Send(x);
+                break;
+            case "NOT":
+                Not(x, y);
+                break;
+            case "GO":
+                Go(x, y);
+                break;
+            case "HALT":
+                Halt();
+                break;
+
+            default:
+                _resourceAllocator.Test(this);
+                return;
+        }
+
+
+    }
+
 }

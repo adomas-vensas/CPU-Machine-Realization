@@ -28,12 +28,20 @@ namespace MainStage.Views
 
         private void OnReturnPressed(object sender, KeyEventArgs e)
         {
-            if(e.Key == Key.Return)
+            if(e.Key != Key.Return)
             {
-                ((VirtualMachine)DataContext).NextInput = vmInput.Text;
-                vmInput.Text = "";
-                ((VirtualMachine)DataContext).InputHistory.Add(new { Command = ((VirtualMachine)DataContext).NextInput });
+                return;
             }
+
+            var vm = this.DataContext as VirtualMachine;
+
+            string command = VmInput.Text;
+            
+            VmInput?.Clear();
+
+            vm.InputHistory.Add(command);
+
+            vm.ParseInput(command);
         }
 
 
