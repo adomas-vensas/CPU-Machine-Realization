@@ -67,20 +67,6 @@ public class Memory<TKey, TValue> : Dictionary<TKey, TValue>
         BlockSize = blockSize;
         _defaultValue = initialValue;
 
-        _os = new ViewModels.OperatingSystem();
-
-        _interruptTable = new()
-        {
-            { 1, new Action<int>(_os.GiveControl) },
-            { 2, new Action<int>(_os.GiveControl) },
-            { 3, new Action<int>(_os.GiveControl) },
-            { 4, new Action<int>(_os.GiveControl) },
-            { 5, new Action<int>(_os.GiveControl) },
-            { 6, new Action<int>(_os.GiveControl) },
-            { 7, new Action<int>(_os.GiveControl) },
-            { 8, new Action<int>(_os.GiveControl) },
-        };
-
 
         for (int i = 0; i < MaxSize; ++i)
         {

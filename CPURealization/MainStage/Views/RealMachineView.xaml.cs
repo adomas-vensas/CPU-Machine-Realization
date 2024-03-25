@@ -39,5 +39,23 @@ namespace MainStage.Views
             virtualMachineView.Title = virtualMachine.VirtualMachineName;
             virtualMachineView.Show();
         }
+
+        private void OnReturnPressed(object sender, KeyEventArgs e)
+        {
+            if (e.Key != Key.Return)
+            {
+                return;
+            }
+
+            var rm = this.DataContext as RealMachine;
+
+            string command = RmInput.Text;
+
+            RmInput?.Clear();
+
+            rm.InputHistory.Add(command);
+
+            rm.ParseInput(command);
+        }
     }
 }
