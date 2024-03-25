@@ -32,9 +32,11 @@ namespace MainStage.Views
             {
                 ((VirtualMachine)DataContext).NextInput = vmInput.Text;
                 vmInput.Text = "";
-                vmOutput.Text = ((VirtualMachine)DataContext).NextInput;
+                ((VirtualMachine)DataContext).InputHistory.Add(new { Command = ((VirtualMachine)DataContext).NextInput });
             }
         }
+
+
 
 
     }

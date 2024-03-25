@@ -100,7 +100,20 @@
             </Grid.ColumnDefinitions>
 
             <TextBox Grid.Column="0" Name="vmInput" KeyDown="OnReturnPressed"></TextBox>
-            <TextBox Grid.Column="1" Name="vmOutput"></TextBox>
+
+            <ItemsControl Grid.Column="1" ItemsSource="{Binding InputHistory}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel>
+                            <TextBlock>
+                                <Run Text=">>"></Run><Run Text="{Binding Command, Mode=OneWay}"></Run>
+                            </TextBlock>
+                        </StackPanel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            
+            
             
         </Grid>
 

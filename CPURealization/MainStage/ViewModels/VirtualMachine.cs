@@ -2,11 +2,13 @@
 using MainStage.Shared;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
@@ -85,13 +87,19 @@ public class VirtualMachine : IInstructions, IVMRegisters, INotifyPropertyChange
         }
     }
 
-    
+    private ObservableCollection<object> _inputHistory;
+    public ObservableCollection<object> InputHistory
+    {
+        get => _inputHistory;
+        set => _inputHistory = value;
+    }
 
-    //private RelayCommand? _returnPressedCommand;
-    //public RelayCommand ReturnPressedCommand
-    //{
-    //    get { return _returnPressedCommand ?? (_returnPressedCommand = new RelayCommand(ReturnPressedCommandHandler, param => true)); }
-    //}
+    private ObservableCollection<object> _commandHistory;
+    public ObservableCollection<object> CommandHistory
+    {
+        get => _commandHistory;
+        set => _commandHistory = value;
+    }
 
     #endregion Properties
 
@@ -102,6 +110,8 @@ public class VirtualMachine : IInstructions, IVMRegisters, INotifyPropertyChange
         _virtualMachineName = virtualMachineName;
         _resourceAllocator = resourceAllocator;
         VirtualMemory = new Memory<int, string>(memorySize, BLOCK_SIZE, x => x, "0000");
+        _inputHistory = new ObservableCollection<object>();
+        _commandHistory = new ObservableCollection<object>();
 
         DisplayMemory = GetDisplayMemory(BLOCK_SIZE, memorySize);
     }
@@ -211,6 +221,11 @@ public class VirtualMachine : IInstructions, IVMRegisters, INotifyPropertyChange
         _resourceAllocator.Test(this);
     }
 
+    public void ParseInput()
+    {
+        var code = Regex.Match(NextInput, @"[A-z]\s[0-9]\s[0-9]");
+    }
+
     private int GetMemAddress(int x, int y)
     {
         return x * BLOCK_SIZE + y;
@@ -222,6 +237,8 @@ public class VirtualMachine : IInstructions, IVMRegisters, INotifyPropertyChange
 
         return result.ToString("X");
     }
+
+
 
     public event PropertyChangedEventHandler? PropertyChanged;
     private void OnPropertyChanged([CallerMemberName] string propertyName = null)
