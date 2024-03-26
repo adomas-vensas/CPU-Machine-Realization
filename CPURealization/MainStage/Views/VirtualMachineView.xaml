@@ -59,6 +59,9 @@
                 <TextBlock Grid.Row="4" Grid.Column="0" Text="C:"/>
                 <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding C}" HorizontalAlignment="Right"/>
 
+                <TextBlock Grid.Row="5" Grid.Column="0" Text="PC:"/>
+                <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding PC}" HorizontalAlignment="Right"/>
+
             </Grid>
 
             <Grid Margin="10,5,0,0" Grid.Column="1">
@@ -119,7 +122,8 @@
             </ScrollViewer>
 
             <TextBox Grid.Row="1" Grid.Column="0" Text="{Binding CommandText,UpdateSourceTrigger=PropertyChanged}" KeyDown="OnReturnPressed"/>
-
+            <Button Height="20" Grid.Row="0" Grid.Column="1" Content="Execute next instruction" VerticalAlignment="Top"
+                    Click="OnExecuteNext"></Button>
         </Grid>
 
     </Grid>

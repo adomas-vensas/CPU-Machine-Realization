@@ -16,6 +16,7 @@ public class Memory<TKey, TValue> : Dictionary<TKey, TValue>
     private readonly TValue _defaultValue;
 
     private readonly Dictionary<int, Action<int>> _interruptTable;
+    private IOS _os;
 
     #region Properties
 
@@ -57,19 +58,6 @@ public class Memory<TKey, TValue> : Dictionary<TKey, TValue>
     public Dictionary<int, Action<int>> InterruptTable
     {
         get => _interruptTable;
-
-//        _interruptTable = new Dictionary<int, Action<int>>
-//        {
-//            { 1, new Action<int>(_os.GiveControl)
-//},
-//            { 2, new Action<int>(_os.GiveControl) },
-//            { 3, new Action<int>(_os.GiveControl) },
-//            { 4, new Action<int>(_os.GiveControl) },
-//            { 5, new Action<int>(_os.GiveControl) },
-//            { 6, new Action<int>(_os.GiveControl) },
-//            { 7, new Action<int>(_os.GiveControl) },
-//            { 8, new Action<int>(_os.GiveControl) }
-//        };
     }
 
     #endregion Properties
@@ -87,6 +75,20 @@ public class Memory<TKey, TValue> : Dictionary<TKey, TValue>
         MaxSize = maxSize;
         BlockSize = blockSize;
         _defaultValue = initialValue;
+
+        _os = new ViewModels.OperatingSystem();
+
+        _interruptTable = new Dictionary<int, Action<int>>
+        {
+            { 0x01, new Action<int>(_os.GiveControl) },
+            { 0x02, new Action<int>(_os.GiveControl) },
+            { 0x03, new Action<int>(_os.GiveControl) },
+            { 0x04, new Action<int>(_os.GiveControl) },
+            { 0x05, new Action<int>(_os.GiveControl) },
+            { 0x06, new Action<int>(_os.GiveControl) },
+            { 0x07, new Action<int>(_os.GiveControl) },
+            { 0x08, new Action<int>(_os.GiveControl) }
+        };
 
 
         for (int i = 0; i < MaxSize; ++i)

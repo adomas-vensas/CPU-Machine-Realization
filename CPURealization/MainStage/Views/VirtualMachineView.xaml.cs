@@ -33,7 +33,7 @@ namespace MainStage.Views
                 return;
             }
 
-            var vm = this.DataContext as VirtualMachine;
+            var vm = DataContext as VirtualMachine;
 
             if (vm == null)
             {
@@ -45,6 +45,19 @@ namespace MainStage.Views
             vm.ParseInput();
 
             vm.CommandText = string.Empty;
+        }
+
+        private void OnExecuteNext(object sender, RoutedEventArgs e)
+        {
+            var vm = DataContext as VirtualMachine;
+
+            if(vm == null)
+            {
+                return;
+            }
+
+            vm.ExecuteInstructionInMemory();
+
         }
     }
 }

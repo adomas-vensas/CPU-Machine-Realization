@@ -93,6 +93,27 @@ public class VirtualMachine : IVMRegisters, INotifyPropertyChanged
         }
     }
 
+    private string _pc = "0000";
+    public string PC
+    {
+        get => _pc;
+        set
+        {
+            value.TryParseHex(out int pcValue);
+
+            if (pcValue > VirtualMemory.Count)
+            {
+                string temp = SetValue("0", 0x1_00);
+                _pc = temp.PadLeft(4, '0');
+            }else
+            {
+                string temp = SetValue(value, 0x1_00);
+                _pc = temp.PadLeft(4, '0');
+            }
+            OnPropertyChanged();
+        }
+    }
+
     private bool _c = false;
     public bool C
     {
@@ -122,17 +143,6 @@ public class VirtualMachine : IVMRegisters, INotifyPropertyChanged
         set
         {
             _inputHistory = value;
-            OnPropertyChanged();
-        }
-    }
-
-    private ObservableCollection<string> _commandHistory = new ObservableCollection<string>();
-    public ObservableCollection<string> CommandHistory
-    {
-        get => _commandHistory;
-        set
-        {
-            _commandHistory = value;
             OnPropertyChanged();
         }
     }
@@ -212,7 +222,13 @@ public class VirtualMachine : IVMRegisters, INotifyPropertyChanged
 
     public void LoadR(int memAddress)
     {
-        VirtualMemory[memAddress] = R;
+        R.TryParseHex(out int result);
+
+        string firstWord = (result / 100).ToString("X").PadLeft(2, '0');
+        string secondWord = (result % 100).ToString("X").PadLeft(2, '0');
+
+        VirtualMemory[memAddress] = firstWord;
+        VirtualMemory[memAddress + 1] = secondWord;
     }
 
     public void LoadI(int number)
@@ -333,7 +349,7 @@ public class VirtualMachine : IVMRegisters, INotifyPropertyChanged
         string secondWord = words[1].PadLeft(2, '0');
 
         LoadInstructionToMemory(firstWord, secondWord);
-        ExecuteCommand(words[0], inputInt);
+        //ExecuteCommand(words[0], inputInt);
 
         _resourceAllocator.UpdateMemory(this, firstWord, secondWord);
     }
@@ -351,6 +367,10 @@ public class VirtualMachine : IVMRegisters, INotifyPropertyChanged
 
         VirtualMemory[memAddress] = firstWord;
         VirtualMemory[memAddress + 1] = secondWord;
+
+        IC = (memAddress + 2).ToString("X");
+
+        DisplayMemory = GetDisplayMemory();
     }
 
     private void ExecuteCommand(string operation, int inputInt)
@@ -379,6 +399,41 @@ public class VirtualMachine : IVMRegisters, INotifyPropertyChanged
 
         IC.TryParseHex(out int memAddress);
         IC = (memAddress + 2).ToString("X");
+
+        DisplayMemory = GetDisplayMemory();
+
+        _resourceAllocator.Test(this);
+    }
+
+    public void ExecuteInstructionInMemory()
+    {
+        PC.TryParseHex(out int pcResult);
+
+        string instruction = VirtualMemory[pcResult];
+
+        Action<int>? action = instruction switch
+        {
+            "10" => Load,
+            "11" => LoadM,
+            "12" => LoadR,
+            "13" => LoadI,
+            "20" => Add,
+            "21" => AddM,
+            "22" => AddI,
+            "30" => Cmp,
+            "31" => CmpM,
+            "40" => Jmp,
+            "41" => JmpM,
+            "42" => JmpA,
+            "00" => Halt,
+            _ => null
+        };
+
+        int value = int.Parse(VirtualMemory[pcResult + 1]);
+
+        action?.Invoke(value);
+
+        PC = (pcResult + 2).ToString("X");
 
         DisplayMemory = GetDisplayMemory();
 

@@ -30,7 +30,6 @@ public class RealMachine : IRMRegisters, IResourceAllocator, INotifyPropertyChan
     private Memory<int, string> _realMemory = new Memory<int, string>(MAX_SIZE, BLOCK_SIZE, x => x, "00");
     private Dictionary<VirtualMachine, Dictionary<int, int>> _vmMemoryBlocks = new(); //In what to what Part of real Memory will the VM exist
     private HashSet<int> _freeRealMemoryBlocks = null;
-    private readonly IOS _os;
 
     #endregion Fields
 
@@ -123,9 +122,7 @@ public class RealMachine : IRMRegisters, IResourceAllocator, INotifyPropertyChan
     {
         _freeRealMemoryBlocks = Enumerable.Range(0, MAX_SIZE).Select(x => x).ToHashSet();
         DisplayMemory = GetDisplayMemory();
-
-        _os = new OperatingSystem();
-
+        
         
     }
 
