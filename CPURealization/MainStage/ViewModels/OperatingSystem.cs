@@ -13,5 +13,10 @@ namespace MainStage.ViewModels
         {
             Console.WriteLine("Control granted with code: {0}", interruptCode);
         }
+
+        public void ProvideMemory(VirtualMachine machine)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

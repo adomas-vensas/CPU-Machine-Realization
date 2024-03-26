@@ -63,23 +63,20 @@
                 <TextBlock Grid.Row="5" Grid.Column="0" Text="MODE: "/>
                 <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding MODE}" HorizontalAlignment="Right"/>
 
-                <TextBlock Grid.Row="6" Grid.Column="0" Text="PI:"/>
-                <TextBlock Grid.Row="6" Grid.Column="1" Text="{Binding PI}" HorizontalAlignment="Right"/>
-
-                <TextBlock Grid.Row="7" Grid.Column="0" Text="SI:"/>
-                <TextBlock Grid.Row="7" Grid.Column="1" Text="{Binding SI}" HorizontalAlignment="Right"/>
+                <TextBlock Grid.Row="6" Grid.Column="0" Text="IR: "/>
+                <TextBlock Grid.Row="6" Grid.Column="1" Text="{Binding IR}" HorizontalAlignment="Right"/>
 
             </Grid>
 
             <Grid Margin="10,5,0,0" Grid.Column="1">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
-                    <RowDefinition MaxHeight="150"/>
+                    <RowDefinition Height="150"/>
                 </Grid.RowDefinitions>
 
                 <TextBlock Grid.Row="0" Text="MEMORY" FontWeight="SemiBold" FontSize="14"/>
 
-                <ScrollViewer Grid.Row="1" Padding="0,0,15,0" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                <ScrollViewer Grid.Row="1" Padding="0,0,15,0" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Visible">
 
                     <ItemsControl ItemsSource="{Binding DisplayMemory}">
                         <ItemsControl.ItemTemplate>
@@ -104,12 +101,12 @@
 
         <Grid Grid.Row="2">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"></ColumnDefinition>
-                <ColumnDefinition Width="*"></ColumnDefinition>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
             <Grid.RowDefinitions>
-                <RowDefinition Height="*"></RowDefinition>
-                <RowDefinition Height="Auto"></RowDefinition>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
             <ScrollViewer Grid.Row="0" Grid.Column="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
@@ -126,7 +123,7 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
             </ScrollViewer>
-            <TextBox Grid.Row="1" Grid.Column="0" Name="RmInput" KeyDown="OnReturnPressed"></TextBox>
+            <TextBox Grid.Row="1" Grid.Column="0" Name="RmInput" KeyDown="OnReturnPressed"/>
 
         </Grid>
 

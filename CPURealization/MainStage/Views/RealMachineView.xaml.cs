@@ -34,7 +34,7 @@ namespace MainStage.Views
             VirtualMachine virtualMachine = vm.CreateVirtualMachine();
 
             VirtualMachineView virtualMachineView = new VirtualMachineView();
-            virtualMachineView.Closing += (sender, e) => virtualMachine.Halt();
+            virtualMachineView.Closing += (sender, e) => virtualMachine.Halt(0);
             virtualMachineView.DataContext = virtualMachine;
             virtualMachineView.Title = virtualMachine.VirtualMachineName;
             virtualMachineView.Show();
@@ -49,13 +49,18 @@ namespace MainStage.Views
 
             var rm = this.DataContext as RealMachine;
 
+            if (rm == null)
+            {
+                return;
+            }
+
             string command = RmInput.Text;
 
-            RmInput?.Clear();
 
             rm.InputHistory.Add(command);
-
             rm.ParseInput(command);
+
+            RmInput?.Clear();
         }
     }
 }

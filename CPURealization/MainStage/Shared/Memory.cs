@@ -10,13 +10,12 @@ namespace MainStage;
 
 public class Memory<TKey, TValue> : Dictionary<TKey, TValue>
 {
-    public EventHandler MaxSizeReached;
+    public event EventHandler MaxSizeReached;
+    public event EventHandler MemoryOutOfRange;  
 
     private readonly TValue _defaultValue;
 
     private readonly Dictionary<int, Action<int>> _interruptTable;
-
-    private IOS _os;
 
     #region Properties
 
@@ -25,7 +24,16 @@ public class Memory<TKey, TValue> : Dictionary<TKey, TValue>
 
     public new TValue this[TKey key]
     {
-        get => base[key];
+        get
+        {
+            if(!base.ContainsKey(key))
+            {
+                MemoryOutOfRange?.Invoke(this, EventArgs.Empty);
+                return default(TValue);
+            }
+
+            return base[key];
+        }
         set
         {
             if (!base.ContainsKey(key) && this.Count >= MaxSize && MaxSizeReached == null)
@@ -49,6 +57,19 @@ public class Memory<TKey, TValue> : Dictionary<TKey, TValue>
     public Dictionary<int, Action<int>> InterruptTable
     {
         get => _interruptTable;
+
+//        _interruptTable = new Dictionary<int, Action<int>>
+//        {
+//            { 1, new Action<int>(_os.GiveControl)
+//},
+//            { 2, new Action<int>(_os.GiveControl) },
+//            { 3, new Action<int>(_os.GiveControl) },
+//            { 4, new Action<int>(_os.GiveControl) },
+//            { 5, new Action<int>(_os.GiveControl) },
+//            { 6, new Action<int>(_os.GiveControl) },
+//            { 7, new Action<int>(_os.GiveControl) },
+//            { 8, new Action<int>(_os.GiveControl) }
+//        };
     }
 
     #endregion Properties

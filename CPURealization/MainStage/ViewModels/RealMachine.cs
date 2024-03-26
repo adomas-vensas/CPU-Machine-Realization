@@ -22,13 +22,12 @@ public class RealMachine : IRMRegisters, IResourceAllocator, INotifyPropertyChan
 {
     #region Fields
 
-    public const int BLOCK_SIZE = 10;
-    public const int MAX_SIZE = BLOCK_SIZE * 50;
+    public const int BLOCK_SIZE = 0x0A;
+    public const int MAX_SIZE = BLOCK_SIZE * 0x32; // 10 * 50
 
     private List<VirtualMachine> _virtualMachines = new List<VirtualMachine>();
     
-    private Memory<int, string> _realMemory = new Memory<int, string>(MAX_SIZE, BLOCK_SIZE, x => x, "0000");
-    private readonly Dictionary<int, Action<int>> _interruptTable;
+    private Memory<int, string> _realMemory = new Memory<int, string>(MAX_SIZE, BLOCK_SIZE, x => x, "00");
     private Dictionary<VirtualMachine, Dictionary<int, int>> _vmMemoryBlocks = new(); //In what to what Part of real Memory will the VM exist
     private HashSet<int> _freeRealMemoryBlocks = null;
     private readonly IOS _os;
@@ -61,7 +60,7 @@ public class RealMachine : IRMRegisters, IResourceAllocator, INotifyPropertyChan
 
     public ModeType MODE { get; set; }
 
-    private string _ir = "0000";
+    private string _ir = "00";
     public string IR
     {
         get => _ir;
@@ -83,7 +82,7 @@ public class RealMachine : IRMRegisters, IResourceAllocator, INotifyPropertyChan
         }
     }
 
-    private string _ic = "00";
+    private string _ic = "0000";
     public string IC
     {
         get => _ic;
@@ -123,34 +122,33 @@ public class RealMachine : IRMRegisters, IResourceAllocator, INotifyPropertyChan
     public RealMachine()
     {
         _freeRealMemoryBlocks = Enumerable.Range(0, MAX_SIZE).Select(x => x).ToHashSet();
-        DisplayMemory = GetDisplayMemory(BLOCK_SIZE, MAX_SIZE);
+        DisplayMemory = GetDisplayMemory();
 
         _os = new OperatingSystem();
 
-        _interruptTable = new Dictionary<int, Action<int>>
-        {
-            { 1, new Action<int>(_os.GiveControl) },
-            { 2, new Action<int>(_os.GiveControl) },
-            { 3, new Action<int>(_os.GiveControl) },
-            { 4, new Action<int>(_os.GiveControl) },
-            { 5, new Action<int>(_os.GiveControl) },
-            { 6, new Action<int>(_os.GiveControl) },
-            { 7, new Action<int>(_os.GiveControl) },
-            { 8, new Action<int>(_os.GiveControl) }
-        };
+        
     }
 
     #endregion Constructors
 
     #region Methods
 
-    private Dictionary<string, string> GetDisplayMemory(int blockSize, int maxSize)
+    private Dictionary<string, string> GetDisplayMemory()
     {
         Dictionary<string, string> displayMemory = new();
 
-        for(int i = 0; i <= maxSize; i += blockSize)
+        int i = 0;
+        string key = "";
+        foreach (var entry in _realMemory)
         {
-            displayMemory[i.ToString("X")] = Enumerable.Repeat("0000", blockSize).Aggregate((x, y) => x + " " + y);
+            if (i % BLOCK_SIZE == 0)
+            {
+                key = entry.Key.ToString("X");
+                displayMemory[key] = string.Empty;
+            }
+            displayMemory[key] += entry.Value + " ";
+
+            ++i;
         }
 
         return displayMemory;
@@ -158,122 +156,43 @@ public class RealMachine : IRMRegisters, IResourceAllocator, INotifyPropertyChan
 
     public VirtualMachine CreateVirtualMachine()
     {
+        int memorySize =  (int) (MAX_SIZE * 0.25);
         string virtualMachineName = $"Virtual Machine {_virtualMachines.Count + 1}";
-        VirtualMachine virtualMachine = new VirtualMachine(virtualMachineName,this, 10);
+        VirtualMachine virtualMachine = new VirtualMachine(virtualMachineName,this, memorySize, BLOCK_SIZE);
 
         _virtualMachines.Add(virtualMachine);
 
-        int memoryBlockId = (int) Random.Shared.NextInt64(0, _freeRealMemoryBlocks.Count + 1);
-        _freeRealMemoryBlocks.Remove(memoryBlockId);
+        _vmMemoryBlocks[virtualMachine] = new Dictionary<int, int>();
 
-        _vmMemoryBlocks[virtualMachine] = new Dictionary<int ,int>() { { 0, memoryBlockId } };
+        int count = (int) Math.Ceiling((double)memorySize / BLOCK_SIZE);
+
+        for (int i = 0; i < count; ++i)
+        {
+            int memoryBlockId = (int)Random.Shared.NextInt64(0, _freeRealMemoryBlocks.Count + 1);
+            _freeRealMemoryBlocks.Remove(memoryBlockId);
+            _vmMemoryBlocks[virtualMachine].Add(i, memoryBlockId);
+        }
 
         return virtualMachine;
     }
 
-    private void UpdateRealMemory(VirtualMachine virtualMachine, int instructionBytes)
+    public void UpdateMemory(VirtualMachine machine, string firstWord, string secondWord)
     {
-        string bytes = instructionBytes.ToString("X");
+        machine.IC.TryParseHex(out int icValue);
 
-        string opCodeHex = bytes.Substring(0, 1);
-        string memAddressHex = bytes.Substring(opCodeHex.Length);
+        icValue -= 2;
 
-        memAddressHex.TryParseHex(out int memAddress);
-        opCodeHex.TryParseHex(out int opCode);
+        int y = icValue / BLOCK_SIZE;
+        int x = icValue % BLOCK_SIZE;
 
-        int x = memAddress / 10;
-        int y = memAddress % 10;
+        int realMemoryId = _vmMemoryBlocks[machine][x];
 
-        int realMemoryId = _vmMemoryBlocks[virtualMachine][x];
+        _realMemory[realMemoryId + y] = firstWord;
+        _realMemory[realMemoryId + y + 1] = secondWord;
 
-        _realMemory[realMemoryId + y] = opCodeHex;
-        _realMemory[realMemoryId + y + 1] = memAddressHex;
-    }
+        DisplayMemory = GetDisplayMemory();
 
-    public void Add(int x, int y)
-    {
-        int address = GetMemAddress(x, y);
-        string memValueStr = _realMemory[address];
-
-        memValueStr.TryParseHex(out int memValue);
-        R.TryParseHex(out int rValue);
-
-        int result = (memValue + rValue);
-
-        if (result > 0x1_0000)
-        {
-            result %= 0x1_0000;
-        }
-
-        R = result.ToString("X");
-
-        Test(this);
-    }
-
-    public void Count(int x, int y)
-    {
-        if (C)
-        {
-            int address = GetMemAddress(x, y);
-            IC = _realMemory[address];
-        }
-
-        Test(this);
-    }
-
-    public void Flip(int x, int y)
-    {
-        int address = GetMemAddress(x, y);
-
-        C = (R == _realMemory[address]);
-
-        Test(this);
-    }
-
-    public void Go(int x, int y)
-    {
-        IC = GetMemAddress(x, y).ToString("X");
-
-        Test(this);
-    }
-
-    public void Load(int x, int y)
-    {
-        int address = GetMemAddress(x, y);
-        string memValue = _realMemory[address];
-
-        R = memValue;
-
-        Test(this);
-    }
-
-    public void Not(int x, int y)
-    {
-        if (!C)
-        {
-            IC = GetMemAddress(x, y).ToString("X");
-        }
-
-        Test(this);
-    }
-
-    public void Read(int x)
-    {
-        throw new NotImplementedException();
-    }
-
-    public void Send(int x)
-    {
-        throw new NotImplementedException();
-    }
-
-    public void Store(int x, int y)
-    {
-        int address = GetMemAddress(x, y);
-
-        _realMemory[address] = R;
-
-        Test(this);
+        IC = (realMemoryId + y).ToString("X");
     }
 
     public void Test(VirtualMachine machine)
@@ -284,7 +203,7 @@ public class RealMachine : IRMRegisters, IResourceAllocator, INotifyPropertyChan
         {
             Console.WriteLine("Interrupt detected");
 
-            _realMemory.InterruptTable[irResult].Invoke(irResult);
+            _realMemory.InterruptTable[irResult]?.Invoke(irResult);
         }
     }
 
@@ -296,13 +215,13 @@ public class RealMachine : IRMRegisters, IResourceAllocator, INotifyPropertyChan
         {
             Console.WriteLine("Interrupt detected");
 
-            _realMemory.InterruptTable[irResult].Invoke(irResult);
+            _realMemory.InterruptTable[irResult]?.Invoke(irResult);
         }
     }
 
     public void ProvideMemory(VirtualMachine machine)
     {
-        throw new NotImplementedException();
+        
     }
 
     public void Dispose(VirtualMachine machine)
@@ -310,9 +229,9 @@ public class RealMachine : IRMRegisters, IResourceAllocator, INotifyPropertyChan
         _virtualMachines.Remove(machine);
     }
 
-    public void SetInterrupt(int interruptCode)
+    public void SetInterrupt(InterruptType interrupt)
     {
-        IR = interruptCode.ToString("X");
+        IR = interrupt.ToString("X");
     }
 
     private string SetValue(string hexString, int modValue)
@@ -348,59 +267,19 @@ public class RealMachine : IRMRegisters, IResourceAllocator, INotifyPropertyChan
 
         (int x, int y) = GetMemAdress(parts[1]);
 
-        ExecuteCommand(parts[0], x, y);
+        //ExecuteCommand(parts[0], x, y);
     }
 
     private int GetMemAddress(int x, int y)
     {
-        return x * MAX_SIZE + y;
+        return x * BLOCK_SIZE + y;
     }
 
     private (int x, int y) GetMemAdress(string memAddressStr)
     {
         int.TryParse(memAddressStr, out int memAddress);
 
-        return (memAddress / MAX_SIZE, memAddress % MAX_SIZE);
-    }
-
-    private void ExecuteCommand(string operation, int x, int y)
-    {
-        switch (operation)
-        {
-            case "LOAD":
-                Load(x, y);
-                break;
-            case "ADD":
-                Add(x, y);
-                break;
-            case "STORE":
-                Store(x, y);
-                break;
-            case "FLIP":
-                Flip(x, y);
-                break;
-            case "COUNT":
-                Count(x, y);
-                break;
-            case "READ":
-                Read(x);
-                break;
-            case "SEND":
-                Send(x);
-                break;
-            case "NOT":
-                Not(x, y);
-                break;
-            case "GO":
-                Go(x, y);
-                break;
-
-            default:
-                Test(this);
-                return;
-        }
-
-
+        return (memAddress / BLOCK_SIZE, memAddress % BLOCK_SIZE);
     }
 
     #endregion Methods
@@ -411,5 +290,8 @@ public class RealMachine : IRMRegisters, IResourceAllocator, INotifyPropertyChan
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));  
     }
 
-    
+    public void DisposeMemory(VirtualMachine machine)
+    {
+        
+    }
 }

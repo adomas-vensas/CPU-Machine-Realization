@@ -1,4 +1,5 @@
-﻿using MainStage.ViewModels;
+﻿using MainStage.Enumerators;
+using MainStage.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,18 +16,15 @@ public interface IResourceAllocator
     public void Test(VirtualMachine machine);
     
     /// <summary>
-    /// Asks parrent machine to provide it with more memory.
-    /// </summary>
-    /// <param name="machine"></param>
-    public void ProvideMemory(VirtualMachine machine);
-
-
-    /// <summary>
     /// Dispose of the current virtual machine.
     /// </summary>
     /// <param name="machine"></param>
     public void Dispose(VirtualMachine machine);
 
-    public void SetInterrupt(int interruptCode);
+    public void ProvideMemory(VirtualMachine machine);
+    public void DisposeMemory(VirtualMachine machine);
 
+    public void SetInterrupt(InterruptType interrupt);
+
+    public void UpdateMemory(VirtualMachine machine, string firstWord, string secondWord);
 }

@@ -12,17 +12,36 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
+using static System.Runtime.InteropServices.JavaScript.JSType;
+using MainStage.Enumerators;
 
 namespace MainStage.ViewModels;
 
-public class VirtualMachine : IInstructions, IVMRegisters, ICommandProcessor, INotifyPropertyChanged
+public class VirtualMachine : IVMRegisters, INotifyPropertyChanged
 {
     #region Fields
 
     private readonly string _virtualMachineName = "Virtual Machine";
     private readonly IResourceAllocator _resourceAllocator;
-    private const int BLOCK_SIZE = 10;
 
+    private readonly int _blockSize = 0;
+
+    private IReadOnlyDictionary<string, string> _instrNamesToHex = new Dictionary<string, string>()
+    {
+        { "LOAD",  "10" },
+        { "LOADM", "11" },
+        { "LOADR", "12" },
+        { "LOADI", "13" },
+        { "ADD",   "20" },
+        { "ADDM",  "21" },
+        { "ADDI",  "22" },
+        { "CMP",   "30" },
+        { "CMPM",  "31" },
+        { "JMP",   "40" },
+        { "JMPM",  "41" },
+        { "JMPA",  "42" },
+        { "HALT",  "00" },
+    };
 
     #endregion Fields
 
@@ -49,7 +68,8 @@ public class VirtualMachine : IInstructions, IVMRegisters, ICommandProcessor, IN
         get => _r;
         set
         {
-            _r = SetValue(value, 0x1_0000);
+            string temp = SetValue(value, 0x1_0000);
+            _r = temp.PadLeft(4, '0');
             OnPropertyChanged();
         }
     }
@@ -60,7 +80,15 @@ public class VirtualMachine : IInstructions, IVMRegisters, ICommandProcessor, IN
         get => _ic;
         set
         {
-            _ic = SetValue(value, 0x1_00);
+            value.TryParseHex(out int icValue);
+
+            if(icValue > VirtualMemory.Count)
+            {
+                _resourceAllocator.SetInterrupt(InterruptType.MAX_MEMORY_REACHED);
+            }
+
+            string temp = SetValue(value, 0x1_00);
+            _ic = temp.PadLeft(4, '0');
             OnPropertyChanged();
         }
     }
@@ -76,13 +104,13 @@ public class VirtualMachine : IInstructions, IVMRegisters, ICommandProcessor, IN
         }
     }
 
-    private string _nextInput = "";
+    private string _nextInput = string.Empty;
     public string NextInput
     {
         get => _nextInput;
         set
         {
-            _nextInput = value;
+            _nextInput = value?.Trim();
             OnPropertyChanged();
         }
     }
@@ -109,127 +137,148 @@ public class VirtualMachine : IInstructions, IVMRegisters, ICommandProcessor, IN
         }
     }
 
+    private string _commandText = null;
+    public string CommandText
+    {
+        get => _commandText;
+        set
+        {
+            _commandText = value;
+            _resourceAllocator.SetInterrupt(InterruptType.KEYBOARD);
+            OnPropertyChanged();
+        }
+    }
+
     #endregion Properties
 
     #region Constructors
 
-    public VirtualMachine(string virtualMachineName, IResourceAllocator resourceAllocator, int memorySize)
+    public VirtualMachine(string virtualMachineName, IResourceAllocator resourceAllocator, int memorySize, int blockSize)
     {
         _virtualMachineName = virtualMachineName;
         _resourceAllocator = resourceAllocator;
-        VirtualMemory = new Memory<int, string>(memorySize, BLOCK_SIZE, x => x, "0000");
-        DisplayMemory = GetDisplayMemory(BLOCK_SIZE, memorySize);
+        _blockSize = blockSize;
+        VirtualMemory = new Memory<int, string>(memorySize, _blockSize, x => x, "00");
+        VirtualMemory.MaxSizeReached += VirtualMemory_MaxSizeReached;
+        VirtualMemory.MemoryOutOfRange += VirtualMemory_MemoryOutOfRange;
+
+        DisplayMemory = GetDisplayMemory();
+    }
+
+    private void VirtualMemory_MemoryOutOfRange(object? sender, EventArgs e)
+    {
+        _resourceAllocator.SetInterrupt(InterruptType.INVALID_MEM_ACCESS);
+    }
+
+    private void VirtualMemory_MaxSizeReached(object? sender, EventArgs e)
+    {
+        _resourceAllocator.SetInterrupt(InterruptType.MAX_MEMORY_REACHED);
     }
 
     #endregion Constructors
 
-    private Dictionary<string, string> GetDisplayMemory(int blockSize, int maxSize)
+    private Dictionary<string, string> GetDisplayMemory()
     {
         Dictionary<string, string> displayMemory = new();
 
-        for (int i = 0; i <= maxSize; i += blockSize)
+        int i = 0;
+        string key = "";
+        foreach (var entry in VirtualMemory)
         {
-            displayMemory[i.ToString("X")] = Enumerable.Repeat("0000", blockSize).Aggregate((x, y) => x + " " + y);
+            if(i % _blockSize == 0)
+            {
+                key = entry.Key.ToString("X");
+                displayMemory[key] = string.Empty;
+            }
+            displayMemory[key] += entry.Value + " ";
+
+            ++i;
         }
 
         return displayMemory;
     }
 
-    public void Add(int x, int y)
+    #region Instructions
+
+    public void Load(int number)
     {
-        int address = GetMemAddress(x, y);
-        string memValueStr = VirtualMemory[address];
-
-        memValueStr.TryParseHex(out int memValue);
-        R.TryParseHex(out int rValue);
-
-        int result = (memValue + rValue);
-
-        if(result > 0x1_0000)
-        {
-            result %= 0x1_0000;
-        }
-
-        R = result.ToString("X");
-
-        _resourceAllocator.Test(this);
+        R = number.ToString("X");
     }
 
-    public void Count(int x, int y)
+    public void LoadM(int memAddress)
     {
-        if(C)
-        {
-            int address = GetMemAddress(x, y);
-            IC = VirtualMemory[address];
-        }
-
-        _resourceAllocator.Test(this);
+        R = VirtualMemory[memAddress];
     }
 
-    public void Flip(int x, int y)
+    public void LoadR(int memAddress)
     {
-        int address = GetMemAddress(x, y);
-
-        C = (R == VirtualMemory[address]);
-
-        _resourceAllocator.Test(this);
+        VirtualMemory[memAddress] = R;
     }
 
-    public void Go(int x, int y)
+    public void LoadI(int number)
     {
-        IC = GetMemAddress(x, y).ToString("X");
-
-        _resourceAllocator.Test(this);
+        IC = number.ToString("X");
     }
 
-    public void Halt()
+    public void Add(int number)
+    {
+        R.TryParseHex(out int rInt);
+
+        R = (number + rInt).ToString("X");
+    }
+
+    public void AddM(int memAddress)
+    {
+        R.TryParseHex(out int rInt);
+        VirtualMemory[memAddress].TryParseHex(out int memInt);
+
+        R = (memInt + rInt).ToString("X");
+    }
+
+    public void AddI(int number)
+    {
+        R.TryParseHex(out int rInt);
+        IC.TryParseHex(out int icInt);
+
+        R = (icInt + rInt).ToString("X");
+    }
+
+    public void Cmp(int number)
+    {
+        R.TryParseHex(out int rInt);
+
+        C = number != rInt;
+    }
+
+    public void CmpM(int memAddress)
+    {
+        R.TryParseHex(out int rInt);
+
+        C = rInt != memAddress;
+    }
+
+    public void Jmp(int number)
+    {
+        IC = R;
+    }
+
+    public void JmpM(int memAddress)
+    {
+        IC = VirtualMemory[memAddress];
+    }
+
+    public void JmpA(int number)
+    {
+        IC = number.ToString("X");
+    }
+
+    public void Halt(int number)
     {
         _resourceAllocator.Dispose(this);
     }
 
-    public void Load(int x, int y)
-    {
-        int address = GetMemAddress(x, y);
-        string memValue = VirtualMemory[address];
+    #endregion Instructions
 
-        R = memValue;
-
-        _resourceAllocator.Test(this);
-    }
-
-    public void Not(int x, int y)
-    {
-        if(!C)
-        {
-            IC = GetMemAddress(x, y).ToString("X");
-        }
-
-        _resourceAllocator.Test(this);
-    }
-
-    public void Read(int x)
-    {
-        throw new NotImplementedException();
-    }
-
-    public void Send(int x)
-    {
-        throw new NotImplementedException();
-    }
-
-    public void Store(int x, int y)
-    {
-        int address = GetMemAddress(x, y);
-
-        VirtualMemory[address] = R;
-
-        _resourceAllocator.Test(this);
-    }
-
-    private int GetMemAddress(int x, int y)
-    {
-        return x * BLOCK_SIZE + y;
-    }
     private string SetValue(string hexString, int modValue)
     {
         hexString.TryParseHex(out int result);
@@ -244,82 +293,96 @@ public class VirtualMachine : IInstructions, IVMRegisters, ICommandProcessor, IN
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
 
-    public void ParseInput(string commandString)
+    public void ParseInput()
     {
+        string commandString = CommandText;
         if(string.IsNullOrWhiteSpace(commandString))
         {
-            _resourceAllocator.Test(this);
+            _resourceAllocator.SetInterrupt(InterruptType.INVALID_INSTRUCTION);
             return;
+        }
+
+        if(!ContainsOneOrTwoWords(commandString))
+        {
+            return;   
         }
 
         commandString = commandString.ToUpper();
-        string pattern = @"^\s*[A-Z]{1,5} [0-9A-F]+\s*$"; //HALT 0E, LOAD 6F, HELLO 1
-        Regex regex = new Regex(pattern);
+        string[] words = commandString.Split(' ', StringSplitOptions.TrimEntries);
 
-        Match match = regex.Match(commandString);
-
-        if(match == null || !match.Success)
+        if (!_instrNamesToHex.ContainsKey(words[0]))
         {
-            _resourceAllocator.Test(this);
+            _resourceAllocator.SetInterrupt(InterruptType.INVALID_INSTRUCTION);
             return;
         }
 
-        string instructionStr = match.Value.Trim();
-        string[] parts = instructionStr.Split(' ');
+        string pattern = @"^[0-9A-F]+\s*$"; //0E, 6F, 1
+        Regex regex = new Regex(pattern);
 
-        (int x, int y) = GetMemAdress(parts[1]);
+        Match match = regex.Match(words[1]);
 
-        ExecuteCommand(parts[0], x, y);
-    }
-
-    private (int x, int y) GetMemAdress(string memAddressStr)
-    {
-        int.TryParse(memAddressStr, out int memAddress);
-
-        return (memAddress / BLOCK_SIZE, memAddress % BLOCK_SIZE);
-    }
-
-    private void ExecuteCommand(string operation, int x, int y)
-    {
-        switch (operation)
+        if(match == null || !match.Success)
         {
-            case "LOAD":
-                Load(x, y);
-                break;
-            case "ADD":
-                Add(x, y);
-                break;
-            case "STORE":
-                Store(x, y);
-                break;
-            case "FLIP":
-                Flip(x, y);
-                break;
-            case "COUNT":
-                Count(x, y);
-                break;
-            case "READ":
-                Read(x);
-                break;
-            case "SEND":
-                Send(x);
-                break;
-            case "NOT":
-                Not(x, y);
-                break;
-            case "GO":
-                Go(x, y);
-                break;
-            case "HALT":
-                Halt();
-                break;
-
-            default:
-                _resourceAllocator.Test(this);
-                return;
+            _resourceAllocator.SetInterrupt(InterruptType.INVALID_MEM_ACCESS);
+            return;
         }
 
+        words[1].TryParseHex(out int inputInt);
 
+        string firstWord = _instrNamesToHex[words[0]];
+        string secondWord = words[1].PadLeft(2, '0');
+
+        LoadInstructionToMemory(firstWord, secondWord);
+        ExecuteCommand(words[0], inputInt);
+
+        _resourceAllocator.UpdateMemory(this, firstWord, secondWord);
+    }
+
+
+    public bool ContainsOneOrTwoWords(string input)
+    {
+        string pattern = @"^\b\w+\b(?:\s+\b\w+\b)?$";
+        return Regex.IsMatch(input, pattern);
+    }
+
+    private void LoadInstructionToMemory(string firstWord, string secondWord)
+    {
+        IC.TryParseHex(out int memAddress);
+
+        VirtualMemory[memAddress] = firstWord;
+        VirtualMemory[memAddress + 1] = secondWord;
+    }
+
+    private void ExecuteCommand(string operation, int inputInt)
+    {
+        IC.TryParseHex(out int icResult);
+
+        Action<int>? action = operation switch
+        {
+            "LOAD"  => Load,
+            "LOADM" => LoadM,
+            "LOADR" => LoadR,
+            "LOADI" => LoadI,
+            "ADD"   => Add,
+            "ADDM"  => AddM,
+            "ADDI"  => AddI,
+            "CMP"   => Cmp,
+            "CMPM"  => CmpM,
+            "JMP"   => Jmp,
+            "JMPM"  => JmpM,
+            "JMPA"  => JmpA,
+            "HALT"  => Halt,
+            _ => null
+        };
+
+        action?.Invoke(inputInt);
+
+        IC.TryParseHex(out int memAddress);
+        IC = (memAddress + 2).ToString("X");
+
+        DisplayMemory = GetDisplayMemory();
+
+        _resourceAllocator.Test(this);
     }
 
 }

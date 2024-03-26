@@ -64,7 +64,7 @@
             <Grid Margin="10,5,0,0" Grid.Column="1">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
-                    <RowDefinition MaxHeight="150"/>
+                    <RowDefinition Height="150"/>
                 </Grid.RowDefinitions>
 
                 <TextBlock Grid.Row="0" Text="MEMORY" FontWeight="SemiBold" FontSize="14"/>
@@ -78,7 +78,7 @@
                                     <TextBlock Width="40" FontWeight="DemiBold">
                                         <Run Text="{Binding Key, Mode=OneWay}"/><Run Text=": "/>
                                     </TextBlock>
-                                    <TextBlock Text="{Binding Value, Mode=OneWay}"></TextBlock>
+                                    <TextBlock Text="{Binding Value, Mode=OneWay}"/>
                                 </StackPanel>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
@@ -118,7 +118,7 @@
                 </ItemsControl>
             </ScrollViewer>
 
-            <TextBox Grid.Row="1" Grid.Column="0" Name="VmInput" KeyDown="OnReturnPressed"/>
+            <TextBox Grid.Row="1" Grid.Column="0" Text="{Binding CommandText,UpdateSourceTrigger=PropertyChanged}" KeyDown="OnReturnPressed"/>
 
         </Grid>
 

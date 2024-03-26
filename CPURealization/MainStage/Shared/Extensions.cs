@@ -12,4 +12,9 @@ public static class Extensions
     {
         return int.TryParse(hexString, System.Globalization.NumberStyles.HexNumber, null, out result);
     }
+
+    public static bool TryParseBinary(this string binaryString, out int result)
+    {
+        return int.TryParse(binaryString, System.Globalization.NumberStyles.BinaryNumber, null, out result);
+    }
 }

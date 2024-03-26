@@ -35,17 +35,16 @@ namespace MainStage.Views
 
             var vm = this.DataContext as VirtualMachine;
 
-            string command = VmInput.Text;
-            
-            VmInput?.Clear();
+            if (vm == null)
+            {
+                return;
+            }
 
-            vm.InputHistory.Add(command);
+            vm.InputHistory.Add(vm.CommandText);
 
-            vm.ParseInput(command);
+            vm.ParseInput();
+
+            vm.CommandText = string.Empty;
         }
-
-
-
-
     }
 }
