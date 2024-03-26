@@ -182,8 +182,8 @@ public class RealMachine : IRMRegisters, IResourceAllocator, INotifyPropertyChan
 
         icValue -= 2;
 
-        int y = icValue / BLOCK_SIZE;
-        int x = icValue % BLOCK_SIZE;
+        int x = icValue / BLOCK_SIZE;
+        int y = icValue % BLOCK_SIZE;
 
         int realMemoryId = _vmMemoryBlocks[machine][x];
 
@@ -203,7 +203,11 @@ public class RealMachine : IRMRegisters, IResourceAllocator, INotifyPropertyChan
         {
             Console.WriteLine("Interrupt detected");
 
-            _realMemory.InterruptTable[irResult]?.Invoke(irResult);
+            if(_realMemory != null && _realMemory.InterruptTable != null)
+            {
+                _realMemory?.InterruptTable[irResult]?.Invoke(irResult);
+            }
+
         }
     }
 
@@ -215,7 +219,10 @@ public class RealMachine : IRMRegisters, IResourceAllocator, INotifyPropertyChan
         {
             Console.WriteLine("Interrupt detected");
 
-            _realMemory.InterruptTable[irResult]?.Invoke(irResult);
+            if (_realMemory != null && _realMemory.InterruptTable != null)
+            {
+                _realMemory?.InterruptTable[irResult]?.Invoke(irResult);
+            }
         }
     }
 
