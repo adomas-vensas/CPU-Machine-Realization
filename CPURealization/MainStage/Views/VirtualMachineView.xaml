@@ -50,17 +50,17 @@
 
                 <TextBlock Grid.Row="0" Grid.ColumnSpan="2" Text="REGISTERS:" FontWeight="SemiBold" FontSize="14"/>
 
-                <TextBlock Grid.Row="2" Grid.Column="0" Text="R:"/>
-                <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding R}" HorizontalAlignment="Right"/>
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="R:"/>
+                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding R}" HorizontalAlignment="Right"/>
 
-                <TextBlock Grid.Row="3" Grid.Column="0" Text="IC:"/>
-                <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding IC}" HorizontalAlignment="Right"/>
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="IC:"/>
+                <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding IC}" HorizontalAlignment="Right"/>
 
-                <TextBlock Grid.Row="4" Grid.Column="0" Text="C:"/>
-                <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding C}" HorizontalAlignment="Right"/>
+                <TextBlock Grid.Row="3" Grid.Column="0" Text="C:"/>
+                <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding C}" HorizontalAlignment="Right"/>
 
-                <TextBlock Grid.Row="5" Grid.Column="0" Text="PC:"/>
-                <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding PC}" HorizontalAlignment="Right"/>
+                <TextBlock Grid.Row="4" Grid.Column="0" Text="VAULT:"/>
+                <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding VAULT}" HorizontalAlignment="Right"/>
 
             </Grid>
 

@@ -40,6 +40,8 @@ public class VirtualMachine : IVMRegisters, INotifyPropertyChanged
         { "JMP",   "40" },
         { "JMPM",  "41" },
         { "JMPA",  "42" },
+        { "STORE", "43" },
+        { "RET",   "44" },
         { "HALT",  "00" },
     };
 
@@ -93,23 +95,13 @@ public class VirtualMachine : IVMRegisters, INotifyPropertyChanged
         }
     }
 
-    private string _pc = "0000";
-    public string PC
+    private string _vault = "0000";
+    public string VAULT
     {
-        get => _pc;
+        get => _vault;
         set
         {
-            value.TryParseHex(out int pcValue);
-
-            if (pcValue > VirtualMemory.Count)
-            {
-                string temp = SetValue("0", 0x1_00);
-                _pc = temp.PadLeft(4, '0');
-            }else
-            {
-                string temp = SetValue(value, 0x1_00);
-                _pc = temp.PadLeft(4, '0');
-            }
+            _vault = value;
             OnPropertyChanged();
         }
     }
@@ -210,6 +202,19 @@ public class VirtualMachine : IVMRegisters, INotifyPropertyChanged
 
     #region Instructions
 
+    public void Ret(int number)
+    {
+        IC = VAULT;
+    }
+
+    public void Store(int number)
+    {
+        IC.TryParseHex(out int result);
+
+        IC = (result + 2).ToString("X");
+        VAULT = IC;
+    }
+
     public void Load(int number)
     {
         R = number.ToString("X");
@@ -280,7 +285,13 @@ public class VirtualMachine : IVMRegisters, INotifyPropertyChanged
 
     public void JmpM(int memAddress)
     {
-        IC = VirtualMemory[memAddress];
+        if(!VirtualMemory.ContainsKey(memAddress))
+        {
+            _resourceAllocator.SetInterrupt(InterruptType.INVALID_MEM_ACCESS);
+            return;
+        }
+
+        IC = memAddress.ToString("X");
     }
 
     public void JmpA(int number)
@@ -332,6 +343,23 @@ public class VirtualMachine : IVMRegisters, INotifyPropertyChanged
             return;
         }
 
+        if(words.Length == 1 && (words[0] == "STORE" || words[0] == "RET" || words[0] == "JMP" || words[0] == "ADDI"))
+        {
+            string fw = _instrNamesToHex[words[0]];
+
+            LoadInstructionToMemory(fw, "00");
+            ExecuteCommand(words[0], 0);
+
+            _resourceAllocator.UpdateMemory(this, fw, "00");
+
+            return;
+        }
+        else if(words.Length == 1)
+        {
+            _resourceAllocator.SetInterrupt(InterruptType.INVALID_INSTRUCTION);
+            return;
+        }
+
         string pattern = @"^[0-9A-F]+\s*$"; //0E, 6F, 1
         Regex regex = new Regex(pattern);
 
@@ -349,7 +377,7 @@ public class VirtualMachine : IVMRegisters, INotifyPropertyChanged
         string secondWord = words[1].PadLeft(2, '0');
 
         LoadInstructionToMemory(firstWord, secondWord);
-        //ExecuteCommand(words[0], inputInt);
+        ExecuteCommand(words[0], inputInt);
 
         _resourceAllocator.UpdateMemory(this, firstWord, secondWord);
     }
@@ -368,14 +396,11 @@ public class VirtualMachine : IVMRegisters, INotifyPropertyChanged
         VirtualMemory[memAddress] = firstWord;
         VirtualMemory[memAddress + 1] = secondWord;
 
-        IC = (memAddress + 2).ToString("X");
-
         DisplayMemory = GetDisplayMemory();
     }
 
     private void ExecuteCommand(string operation, int inputInt)
     {
-        IC.TryParseHex(out int icResult);
 
         Action<int>? action = operation switch
         {
@@ -391,14 +416,19 @@ public class VirtualMachine : IVMRegisters, INotifyPropertyChanged
             "JMP"   => Jmp,
             "JMPM"  => JmpM,
             "JMPA"  => JmpA,
+            "STORE" => Store,
+            "RET"   => Ret,
             "HALT"  => Halt,
             _ => null
         };
 
         action?.Invoke(inputInt);
 
-        IC.TryParseHex(out int memAddress);
-        IC = (memAddress + 2).ToString("X");
+        IC.TryParseHex(out int icResult);
+        if (!operation.Contains("JMP"))
+        {
+            IC = (icResult + 2).ToString("X");
+        }
 
         DisplayMemory = GetDisplayMemory();
 
@@ -407,33 +437,38 @@ public class VirtualMachine : IVMRegisters, INotifyPropertyChanged
 
     public void ExecuteInstructionInMemory()
     {
-        PC.TryParseHex(out int pcResult);
+        IC.TryParseHex(out int icResult);
 
-        string instruction = VirtualMemory[pcResult];
+        string instruction = VirtualMemory[icResult];
 
         Action<int>? action = instruction switch
         {
-            "10" => Load,
-            "11" => LoadM,
-            "12" => LoadR,
-            "13" => LoadI,
-            "20" => Add,
-            "21" => AddM,
-            "22" => AddI,
-            "30" => Cmp,
-            "31" => CmpM,
-            "40" => Jmp,
-            "41" => JmpM,
-            "42" => JmpA,
-            "00" => Halt,
+            "LOAD" => Load,
+            "LOADM" => LoadM,
+            "LOADR" => LoadR,
+            "LOADI" => LoadI,
+            "ADD" => Add,
+            "ADDM" => AddM,
+            "ADDI" => AddI,
+            "CMP" => Cmp,
+            "CMPM" => CmpM,
+            "JMP" => Jmp,
+            "JMPM" => JmpM,
+            "JMPA" => JmpA,
+            "STORE" => Store,
+            "RET" => Ret,
+            "HALT" => Halt,
             _ => null
         };
 
-        int value = int.Parse(VirtualMemory[pcResult + 1]);
+        int value = int.Parse(VirtualMemory[icResult + 1]);
 
         action?.Invoke(value);
 
-        PC = (pcResult + 2).ToString("X");
+        if(!instruction.Contains("JMP"))
+        {
+            IC = (icResult + 2).ToString("X");
+        }
 
         DisplayMemory = GetDisplayMemory();
 
